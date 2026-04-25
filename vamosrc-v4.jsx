@@ -242,8 +242,17 @@ export default function App() {
 
   const sorted=useMemo(()=>[...members].sort((a,b)=>b.vdot-a.vdot).map((m,i)=>({...m,rank:i+1})),[members]);
   const am=useMemo(()=>sorted.find(m=>m.id===activeId)||null,[sorted,activeId]);
-  const catMs=useMemo(()=>sorted.filter(m=>m.category===selCat),[sorted,selCat]);
-  const catRecs=useMemo(()=>{const map={};members.filter(m=>m.category===selCat).forEach(m=>m.trials.forEach(t=>{if(!map[t.distance]||t.vdot>map[t.distance].vdot)map[t.distance]={...t,memberName:m.name};}));return map;},[members,selCat]);
+  const catMs=useMemo(()=>{
+    const rows=[];
+    sorted.forEach(m=>{
+      const catTrials=m.trials.filter(t=>t.category===selCat);
+      if(!catTrials.length)return;
+      const best=catTrials.reduce((a,b)=>b.vdot>a.vdot?b:a,catTrials[0]);
+      rows.push({...m,catVdot:best.vdot,catBestTrial:best});
+    });
+    return rows.sort((a,b)=>b.catVdot-a.catVdot);
+  },[sorted,selCat]);
+  const catRecs=useMemo(()=>{const map={};members.forEach(m=>m.trials.filter(t=>t.category===selCat).forEach(t=>{if(!map[t.distance]||t.vdot>map[t.distance].vdot)map[t.distance]={...t,memberName:m.name};}));return map;},[members,selCat]);
 
   const allGoals=useMemo(()=>{
     const rows=[];
@@ -293,7 +302,7 @@ export default function App() {
       name: m.name,
       category: m.category,
       goals: (gRows||[]).filter(g=>g.member_id===m.id).map(g=>({id:g.id,name:g.name||"",date:g.date,distance:g.distance,time:g.time})),
-      trials: (tRows||[]).filter(t=>t.member_id===m.id).map(t=>({id:t.id,distance:t.distance,time:t.time,date:t.date,vdot:parseFloat(t.vdot)})),
+      trials: (tRows||[]).filter(t=>t.member_id===m.id).map(t=>({id:t.id,distance:t.distance,time:t.time,date:t.date,vdot:parseFloat(t.vdot),category:t.category||m.category})),
     }));
     setMembers(built);
     setLoading(false);
@@ -325,8 +334,7 @@ export default function App() {
     const time=toCentisec(tForm.h,tForm.m,tForm.s,tForm.cs); if(time===0)return;
     const cat=tForm.category||am?.category||"m_30s";
     const vdot=calcVDOT(DISTANCES[tForm.distance],time/100);
-    if(cat!==am?.category) await sb.from("members").update({category:cat}).eq("id",activeId);
-    await sb.from("trials").insert({member_id:activeId,distance:tForm.distance,time,date:tForm.date,vdot});
+    await sb.from("trials").insert({member_id:activeId,distance:tForm.distance,time,date:tForm.date,vdot,category:cat});
     setTF({distance:"マラソン",h:"",m:"",s:"",cs:"",date:todayStr(),category:""});
     setShowAddT(false); setFlash(n=>n+1);
   }
@@ -433,10 +441,10 @@ export default function App() {
                           </div>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:700,fontSize:18,marginBottom:2,fontFamily:"Noto Sans JP,sans-serif",letterSpacing:"-.01em"}}>{m.name}</div>
-                            <div style={{fontSize:11,color:"#555",fontFamily:"Noto Sans JP,sans-serif"}}>{m.bestTrial?.distance}&nbsp;<span style={{color:"#888"}}>{m.bestTrial?fmtTime(m.bestTrial.time):""}</span></div>
+                            <div style={{fontSize:11,color:"#555",fontFamily:"Noto Sans JP,sans-serif"}}>{m.catBestTrial?.distance}&nbsp;<span style={{color:"#888"}}>{m.catBestTrial?fmtTime(m.catBestTrial.time):""}</span></div>
                           </div>
                           <div style={{textAlign:"right",flexShrink:0}}>
-                            <div className="vn" style={{fontSize:26,color:vc(m.vdot)}}>{m.vdot.toFixed(1)}</div>
+                            <div className="vn" style={{fontSize:26,color:vc(m.catVdot)}}>{m.catVdot.toFixed(1)}</div>
                             <div style={{fontSize:9,color:"#444",fontFamily:"Noto Sans JP,sans-serif"}}>VDOT</div>
                           </div>
                           <span style={{color:"#333",fontSize:15,flexShrink:0}}>›</span>
@@ -645,12 +653,12 @@ function MemberPage({member,onBack,onAddTrial,onDelTrial,onDelMember,requirePin,
   const [showAddGoal,setShowAddGoal]=useState(false);
   const [gForm,setGForm]=useState({name:"",date:"",distance:DIST_KEYS[4],h:"",m:"",s:"",cs:""});
   const [addR,renderR]=useRipple();
-  const color=vc(member.vdot),rank=vrl(member.vdot),paces=getTrainingPaces(member.vdot),cat=CAT_MAP[member.category];
+  const color=vc(member.vdot),rank=vrl(member.vdot),paces=getTrainingPaces(member.vdot);
+  const cat=member.bestTrial?.category?CAT_MAP[member.bestTrial.category]:CAT_MAP[member.category];
   const chrono=[...member.trials].sort((a,b)=>a.date.localeCompare(b.date));
   const display=[...member.trials].sort((a,b)=>b.date.localeCompare(a.date));
   const pbV=member.trials.length?Math.max(...member.trials.map(t=>t.vdot)):0;
   const pbT=member.trials.find(t=>t.vdot===pbV);
-  const growth=chrono.length>=2?(chrono[chrono.length-1].vdot-chrono[0].vdot).toFixed(1):null;
   const paceItems=[
     {label:"イージー走",sub:"回復・有酸素",val:paces.easy,color:"#22c55e"},
     {label:"マラソンペース",sub:"目標ペース",val:paces.marathon,color:"#3b82f6"},
@@ -722,12 +730,10 @@ function MemberPage({member,onBack,onAddTrial,onDelTrial,onDelMember,requirePin,
               </div>
             )}
             <div style={{display:"flex",gap:9,marginBottom:14}}>
-              {[{l:"記録回数",v:`${member.trials.length}回`},growth!==null?{l:"通算成長",v:(Number(growth)>0?"+":"")+growth,c:Number(growth)>0?"#22c55e":"#ef4444"}:null].filter(Boolean).map((s,i)=>(
-                <div key={i} className="card" style={{flex:1,padding:"12px 14px"}}>
-                  <div style={{fontSize:9,color:"#555",marginBottom:5,fontFamily:"Noto Sans JP,sans-serif"}}>{s.l}</div>
-                  <div className="vn" style={{fontSize:22,color:s.c||"#ddd"}}>{s.v}</div>
-                </div>
-              ))}
+              <div className="card" style={{display:"inline-flex",padding:"12px 18px"}}>
+                <div style={{fontSize:9,color:"#555",marginBottom:5,fontFamily:"Noto Sans JP,sans-serif"}}>記録回数</div>
+                <div className="vn" style={{fontSize:22,color:"#ddd",marginTop:3}}>{member.trials.length}回</div>
+              </div>
             </div>
             {chrono.length>=2&&(
               <div className="card" style={{padding:"18px",marginBottom:16}}>
@@ -745,7 +751,10 @@ function MemberPage({member,onBack,onAddTrial,onDelTrial,onDelMember,requirePin,
                   {t.id===display[0].id&&<div style={{fontSize:9,color:"#ff4d00",marginTop:2,fontFamily:"Noto Sans JP,sans-serif"}}>最新</div>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,color:"#555",marginBottom:2,fontFamily:"Noto Sans JP,sans-serif"}}>{t.distance}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+                    <span style={{fontSize:10,color:"#555",fontFamily:"Noto Sans JP,sans-serif"}}>{t.distance}</span>
+                    {t.category&&CAT_MAP[t.category]&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,background:`${CAT_MAP[t.category].color}15`,color:CAT_MAP[t.category].color,border:`1px solid ${CAT_MAP[t.category].color}28`}}>{CAT_MAP[t.category].short}</span>}
+                  </div>
                   <div className="vn" style={{fontSize:19,color:"#e0e0e0"}}>{fmtTime(t.time)}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0,marginRight:6}}>
@@ -884,7 +893,7 @@ function MemberPage({member,onBack,onAddTrial,onDelTrial,onDelMember,requirePin,
 
 function MCard({m,idx,onClick}) {
   const [addR,renderR]=useRipple();
-  const color=vc(m.vdot),cat=CAT_MAP[m.category];
+  const color=vc(m.vdot),cat=m.bestTrial?.category?CAT_MAP[m.bestTrial.category]:CAT_MAP[m.category];
   const bw=Math.min(100,Math.max(3,((m.vdot-20)/65)*100));
   return (
     <div className="mc rp-host fu" style={{padding:"14px 16px",animationDelay:`${idx*35}ms`}} onClick={e=>{addR(e);onClick();}}>
