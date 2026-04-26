@@ -1039,34 +1039,25 @@ function TTPage({ttData,onOpenMember}){
         </div>
       )}
     </div>
-            {editTrial&&(
-              <div className="ov" onClick={e=>e.target===e.currentTarget&&onCancelEdit()}>
-                <div className="mo">
-                  <div style={{marginBottom:20}}><div style={{width:26,height:3,background:"#6366f1",borderRadius:2,marginBottom:8}}/><div style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:21,color:"#fff",fontStyle:"italic"}}>記録を編集</div></div>
-                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                    <FF label="イベント・大会名（任意）"><input className="inp" placeholder="例：春季記録会" value={eForm.event_name_input||""} onChange={e=>setEF(f=>({...f,event_name_input:e.target.value,event_no:""}))}/></FF>
-                    <FF label="タイムトライアルの場合は回数">
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontFamily:"Noto Sans JP,sans-serif",fontSize:13,color:"#aaa",whiteSpace:"nowrap"}}>第</span>
-                        <input className="inp" type="number" min="1" placeholder="3" value={eForm.event_no||""} onChange={e=>setEF(f=>({...f,event_no:e.target.value,event_name_input:""}))} style={{width:90,textAlign:"center"}}/>
-                        <span style={{fontFamily:"Noto Sans JP,sans-serif",fontSize:13,color:"#aaa",whiteSpace:"nowrap"}}>回TT</span>
-                        {eForm.event_no&&<span style={{fontSize:11,color:"#6366f1",fontFamily:"Noto Sans JP,sans-serif",fontWeight:700}}>第{eForm.event_no}回TT</span>}
-                      </div>
-                    </FF>
-                    <FF label="カテゴリー"><CatSelector value={eForm.category||member.category} onChange={v=>setEF(f=>({...f,category:v}))}/></FF>
-                    <FF label="種目"><select className="inp" value={eForm.distance} onChange={e=>setEF(f=>({...f,distance:e.target.value}))}>{DIST_KEYS.map(d=>(<option key={d}>{d}</option>))}</select></FF>
-                    <FF label="タイム"><TimeInput vals={eForm} onChange={(k,v)=>setEF(f=>({...f,[k]:v}))}/></FF>
-                    <FF label="日付"><input className="inp" type="date" value={eForm.date} onChange={e=>setEF(f=>({...f,date:e.target.value}))}/></FF>
-                    <VdotPreview distance={eForm.distance} h={eForm.h} m={eForm.m} s={eForm.s} cs={eForm.cs}/>
-                    <OfficialToggle value={eForm.official!==false} onChange={v=>setEF(f=>({...f,official:v}))}/>
-                    <div style={{display:"flex",gap:8}}>
-                      <button className="bg" style={{flex:1}} onClick={onCancelEdit}>キャンセル</button>
-                      <button style={{flex:2,background:"#6366f1",color:"#fff",border:"none",borderRadius:4,fontSize:13,fontFamily:"Noto Sans JP,sans-serif",fontWeight:700,cursor:"pointer",padding:"9px"}} onClick={onSaveTrial}>保存する</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+      {editTrial&&(
+        <div className="ov" onClick={e=>e.target===e.currentTarget&&onCancelEdit()}>
+          <div className="mo">
+            <div style={{marginBottom:20}}><div style={{width:26,height:3,background:"#6366f1",borderRadius:2,marginBottom:8}}/><div style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:21,color:"#fff",fontStyle:"italic"}}>記録を編集</div></div>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <FF label="イベント・大会名（任意）"><input className="inp" placeholder="例：春季記録会" value={eForm.event_name_input||""} onChange={e=>setEF(f=>({...f,event_name_input:e.target.value,event_no:""}))}/></FF>
+              <FF label="タイムトライアルの場合は回数"><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontFamily:"Noto Sans JP,sans-serif",fontSize:13,color:"#aaa",whiteSpace:"nowrap"}}>第</span><input className="inp" type="number" min="1" placeholder="3" value={eForm.event_no||""} onChange={e=>setEF(f=>({...f,event_no:e.target.value,event_name_input:""}))} style={{width:90,textAlign:"center"}}/><span style={{fontFamily:"Noto Sans JP,sans-serif",fontSize:13,color:"#aaa",whiteSpace:"nowrap"}}>回TT</span>{eForm.event_no&&<span style={{fontSize:11,color:"#6366f1",fontFamily:"Noto Sans JP,sans-serif",fontWeight:700}}>第{eForm.event_no}回TT</span>}</div></FF>
+              <FF label="カテゴリー"><CatSelector value={eForm.category||member.category} onChange={v=>setEF(f=>({...f,category:v}))}/></FF>
+              <FF label="種目"><select className="inp" value={eForm.distance} onChange={e=>setEF(f=>({...f,distance:e.target.value}))}>{DIST_KEYS.map(d=>(<option key={d}>{d}</option>))}</select></FF>
+              <FF label="タイム"><TimeInput vals={eForm} onChange={(k,v)=>setEF(f=>({...f,[k]:v}))}/></FF>
+              <FF label="日付"><input className="inp" type="date" value={eForm.date} onChange={e=>setEF(f=>({...f,date:e.target.value}))}/></FF>
+              <VdotPreview distance={eForm.distance} h={eForm.h} m={eForm.m} s={eForm.s} cs={eForm.cs}/>
+              <OfficialToggle value={eForm.official!==false} onChange={v=>setEF(f=>({...f,official:v}))}/>
+              <div style={{display:"flex",gap:8}}><button className="bg" style={{flex:1}} onClick={onCancelEdit}>キャンセル</button><button style={{flex:2,background:"#6366f1",color:"#fff",border:"none",borderRadius:4,fontSize:13,fontFamily:"Noto Sans JP,sans-serif",fontWeight:700,cursor:"pointer",padding:"9px"}} onClick={onSaveTrial}>保存する</button></div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
